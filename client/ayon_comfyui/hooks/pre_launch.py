@@ -252,7 +252,6 @@ class ComfyUIPreLaunchHook(PreLaunchHook):
             plugin_name = Path(plugin["url"]).stem
             progress_callback(f"Setting up Plugin: {plugin_name}")
             plugin_root = self.comfy_root / "custom_nodes" / plugin_name
-            plugin.update({"root": plugin_root})
             git_clone(
                 url=plugin["url"],
                 dest=plugin_root,
@@ -322,7 +321,7 @@ class ComfyUIPreLaunchHook(PreLaunchHook):
             launch_args.append(self.uv_path)
         if self.plugins:
             launch_args.append("-plugins")
-            plugin_names = [plugin["root"].name for plugin in self.plugins]
+            plugin_names = [Path(plugin["url"]).stem for plugin in self.plugins]
             launch_args.append(",".join(plugin_names))
         if self.extra_dependencies:
             launch_args.append("-extraDependencies")
