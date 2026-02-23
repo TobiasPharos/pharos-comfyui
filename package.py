@@ -1,6 +1,6 @@
 name = "comfyui"
 title = "ComfyUI"
-version = "0.0.7-dev"
+version = "0.0.7"
 
 client_dir = "ayon_comfyui"
 
