@@ -1,3 +1,6 @@
+> [!WARNING]
+This addon won't be continued since there is a much better addon over at https://github.com/ynput/ayon-comfyui
+
 # ayon-comfyui
 An AYON Addon for launching ComfyUI locally via TrayLauncher.
 
