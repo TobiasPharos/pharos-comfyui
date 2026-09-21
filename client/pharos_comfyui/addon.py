@@ -5,12 +5,12 @@ from .version import __version__
 
 
 ADDON_ROOT = Path(__file__).parent
-ADDON_NAME = "comfyui"
-ADDON_LABEL = "ComfyUI"
+ADDON_NAME = "pharos_comfyui"
+ADDON_LABEL = "Pharos ComfyUI"
 ADDON_VERSION = __version__
 
 
-class ComfyUIAddon(AYONAddon, IHostAddon):
+class PharosComfyUIAddon(AYONAddon, IHostAddon):
     name = host_name = ADDON_NAME
     label = ADDON_LABEL
     version = __version__

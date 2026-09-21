@@ -44,30 +44,21 @@ class CustomNodeSettings(RepositorySettings):
     )
 
 
-class ComfyUIExtraModelSettings(BaseSettingsModel):
-    enabled: bool = SettingsField(default=False)
-    dir_template: str = SettingsField(
-        default_factory=list,
-        title="Source Directory",
-        description="Where to load extra models from. Can also contain template keys",
-    )
-    copy_to_base: bool = SettingsField(
-        default=False,
-        title="Copy to Base",
-        description="Copy all found extra models to their respective ComfyUI base directory.",
-    )
-
-
 class ComfyUIRepositorySettings(BaseSettingsModel):
     base_template: str = SettingsField(
         default="",
         title="Repository Root Template",
-        description="Where to clone the ComfyUI repository to.",
+        description="Where to clone the ComfyUI repository to. Use {userprofile} to reference the user profile directory.",
     )
     base_url: str = SettingsField(
         default="",
         title="Repository URL",
         description="Where to clone the ComfyUI repository from.",
+    )
+    install_sageattention: bool = SettingsField(
+        default=True,
+        title="Install SageAttention",
+        description="Install the SageAttention plugin for ComfyUI.",
     )
     plugins: list[CustomNodeSettings] = SettingsField(
         default_factory=list[CustomNodeSettings],
@@ -89,11 +80,6 @@ class ComfyUICachingSettings(BaseSettingsModel):
 class AddonSettings(BaseSettingsModel):
     """ComfyUI addon settings."""
 
-    extra_flags: list[str] = SettingsField(
-        default=[],
-        title="Extra Flags",
-        description="Extra argument flags to pass when launching the ComfyUI server.",
-    )
     venv: VirtualEnvSettings = SettingsField(
         default_factory=VirtualEnvSettings,
         title="Virtual Environment Settings",
@@ -103,9 +89,6 @@ class AddonSettings(BaseSettingsModel):
         default_factory=ComfyUIRepositorySettings,
         title="Repository Settings",
         description="Git Repository Settings.",
-    )
-    extra_models: ComfyUIExtraModelSettings = SettingsField(
-        default_factory=ComfyUIExtraModelSettings,
     )
     caching: ComfyUICachingSettings = SettingsField(
         default_factory=ComfyUICachingSettings,

@@ -1,5 +1,6 @@
 # Ignore created packages
 /package
+/tests
 
 /.idea
 

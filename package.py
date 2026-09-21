@@ -1,8 +1,8 @@
-name = "comfyui"
-title = "ComfyUI"
-version = "0.0.8-dev"
+name = "pharos_comfyui"
+title = "Pharos ComfyUI"
+version = "0.0.18"
 
-client_dir = "ayon_comfyui"
+client_dir = "pharos_comfyui"
 
 plugin_for = ["ayon_server"]
 build_command = ""
