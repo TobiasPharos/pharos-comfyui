@@ -280,6 +280,16 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
         self.install_sageattention: bool = self.addon_settings["repositories"]["install_sageattention"]
 
     def clone_repositories(self, progress_callback=EMPTY_PROGRESS_CALLBACK):
+        git_path = self.addon_settings["venv"]["git_path"]
+        if Path(git_path).exists():
+            if os.getenv("GIT_PYTHON_GIT_EXECUTABLE"):
+                log.warning(
+                    f"Overriding existing GIT_PYTHON_GIT_EXECUTABLE which is already set to {os.getenv('GIT_PYTHON_GIT_EXECUTABLE')}"
+                )
+            os.environ["GIT_PYTHON_GIT_EXECUTABLE"] = git_path
+        else:
+            log.warning(f"Git executable not found at {git_path}")
+        
         def git_clone(url: str, dest: Path, tag: str = "") -> git.Repo:
             if not dest.exists():
                 log.info(f"Cloning {url} to {dest}")
@@ -289,7 +299,7 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
 
             repo.git.fetch(tags=True)
             if repo.is_dirty(untracked_files=True):
-                self.log.info(f"Stashing uncommitted changes in {repo}")
+                log.info(f"Stashing uncommitted changes in {repo}")
                 repo.git.stash("save", "--include-untracked")
 
             if tag:

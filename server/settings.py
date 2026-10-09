@@ -24,6 +24,11 @@ class VirtualEnvSettings(BaseSettingsModel):
         title="UV Executable Path",
         description="Must be the explicit path to the UV executable.",
     )
+    git_path: str = SettingsField(
+        default="",
+        title="Git Executable Path",
+        description="Optional override to git executable. Must be the explicit path.",
+    )
     python_version: str = SettingsField(
         default="3.12",
         title="Python Version",
