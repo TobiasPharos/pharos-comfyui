@@ -206,11 +206,15 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
             ) from e
 
         cuda_version = None
-        for line in smi_version_details.splitlines():
-            if "CUDA Version" in line:
-                parts = line.split(":", 1)
-                if len(parts) == 2:
-                    cuda_version = parts[1].strip()
+        version_lines = ["CUDA UMD version", "CUDA version"]
+        for version_line in version_lines:
+            for line in smi_version_details.splitlines():
+                if version_line in line and "Deprecated" not in line:
+                    parts = line.split(":", 1)
+                    if len(parts) == 2:
+                        cuda_version = parts[1].strip()
+                    break
+            if cuda_version:
                 break
         if not cuda_version:
             raise RuntimeError("CUDA version could not be determined from `nvidia-smi` output.")
