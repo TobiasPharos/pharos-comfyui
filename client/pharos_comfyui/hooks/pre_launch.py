@@ -1,6 +1,5 @@
 import os
 
-import git
 import sys
 import ayon_api
 import subprocess
@@ -289,6 +288,8 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
             os.environ["GIT_PYTHON_GIT_EXECUTABLE"] = git_path
         else:
             log.warning(f"Git executable not found at {git_path}")
+
+        import git
         
         def git_clone(url: str, dest: Path, tag: str = "") -> git.Repo:
             if not dest.exists():

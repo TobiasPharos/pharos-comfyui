@@ -1,6 +1,6 @@
 name = "pharos_comfyui"
 title = "Pharos ComfyUI"
-version = "0.0.19"
+version = "0.0.20"
 
 client_dir = "pharos_comfyui"
 

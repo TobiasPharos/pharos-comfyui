@@ -1,2 +1,3 @@
 [tool.poetry.dependencies]
 six = "^1.15"
+gitpython = ">=3.2"

@@ -1,5 +1,5 @@
 [project]
 name = "pharos-comfyui"
-version = "0.1.0"
-requires-python = "==3.11.*"
+version = "0.0.20"
+requires-python = ">=3.9"
 dependencies = []
