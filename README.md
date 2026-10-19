@@ -21,6 +21,11 @@ Its `name` and `host_name` must be `comfyui`.
 Use the variant names to specify an available ComfyUI branch or tag. Finally, set the windows executable path to `powershell.exe`.
 This is to launch beforementioned separate terminal session. I know, it's a bit hacky.
 
+You may also add a custom User Attribute called userComfyUiPlugins. It allows you to set up user-specific ComfyUi Environments. The attribute is a list of dictionaries. Each dict requires at least a key "url" with the github URL of the plugin. Optionally it may also contain the keys "tag" (checkout specific tag), "name" (defaults to the name of the repo if not set), "extra_dependencies" (to install dependencies, that are not in the requirements.txt of the repo) - basically the structure follows the same structure as the Plugins settings in the main addon settings.
+```python
+[{"url": "https://github.com/....git"}, {"url": "https://github.com/....git", "tag": "v0.3", "name": "Special Plugin", "extra_dependencies": "example"}]
+```
+
 #### Virtual Environment Settings
 Configure the python version to use and whether to pull nightly PyTorch builds.
 You can also set a specific path to `uv` and `git` if it's not in `$PATH`.

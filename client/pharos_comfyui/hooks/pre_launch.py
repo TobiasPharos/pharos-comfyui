@@ -220,31 +220,32 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
             raise RuntimeError("CUDA version could not be determined from `nvidia-smi` output.")
 
         # Known mappings; add new ones here as they become available
+        # TODO: Turn this into Ayon settings
         pypi_url_map = {
-            "11.8": {
-                "stable": "https://download.pytorch.org/whl/cu118",
-                "nightly": None,
-            },
-            "12.6": {
-                "stable": "https://download.pytorch.org/whl/cu126",
-                "nightly": "https://download.pytorch.org/whl/nightly/cu126",
-            },
+            # "11.8": {
+            #     "stable": "https://download.pytorch.org/whl/cu118",
+            #     "nightly": None,
+            # },
+            # "12.6": {
+            #     "stable": "https://download.pytorch.org/whl/cu126",
+            #     "nightly": "https://download.pytorch.org/whl/nightly/cu126",
+            # },
             "12.8": {
                 "stable": "https://download.pytorch.org/whl/cu128",
                 "nightly": "https://download.pytorch.org/whl/nightly/cu128",
             },
-            "12.9": {
-                "stable": "https://download.pytorch.org/whl/cu129",
-                "nightly": "https://download.pytorch.org/whl/nightly/cu129",
-            },
+            # "12.9": {
+            #     "stable": "https://download.pytorch.org/whl/cu129",
+            #     "nightly": "https://download.pytorch.org/whl/nightly/cu129",
+            # },
             "13.0": {
                 "stable": "https://download.pytorch.org/whl/cu130",
                 "nightly": "https://download.pytorch.org/whl/nightly/cu130",
             },
-            "13.2": {
-                "stable": "https://download.pytorch.org/whl/cu132",
-                "nightly": "https://download.pytorch.org/whl/nightly/cu132",
-            },
+            # "13.2": {
+            #     "stable": "https://download.pytorch.org/whl/cu132",
+            #     "nightly": "https://download.pytorch.org/whl/nightly/cu132",
+            # },
         }
 
         # choose channel
@@ -279,6 +280,8 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
         log.info(f"Using PyPI URL: {self.pypi_url}")
 
         self.py_version: str = self.addon_settings["venv"]["python_version"]
+        if not self.py_version.startswith("3.12"):
+            log.warning(f"Unsupported Python version {self.py_version}. Only Python 3.12 is supported.")
         self.uv_path: str = self.addon_settings["venv"]["uv_path"]
         self.install_sageattention: bool = self.addon_settings["repositories"]["install_sageattention"]
 

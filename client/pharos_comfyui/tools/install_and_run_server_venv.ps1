@@ -3,10 +3,10 @@ param(
     [string]$uvPath = "",
     [string]$cacheDir = "",
     [string]$pypiUrl = "",
-    [string]$pythonVersion = "",
+    [string]$pythonVersion = "", # Only Python 3.12 supported
     [string[]]$plugins = @(),
     [string[]]$extraDependencies = @(),
-    [string]$cudaVersion = "",
+    [string]$cudaVersion = "", # Limited to supported versions "12.8" and "13.0" by pre-launch hook for SageAttention compatibility
     [bool]$installSageAttention = $false
 )
 
@@ -74,7 +74,8 @@ $tempVenv = ".venv-baseline"
 Write-Output "Creating temporary venv at $PWD\$tempVenv"
 & $uv venv $tempVenv --python $pythonVersion
 & "$tempVenv\Scripts\activate"
-& $uv pip install --pre torch torchvision torchaudio --index-url $pypiUrl
+Write-Output "Installing torch: $uv pip install --pre "torch" "torchvision" "torchaudio" --index-url $pypiUrl"
+& $uv pip install --pre "torch" "torchvision" "torchaudio" --index-url $pypiUrl
 & $uv pip install -r requirements.txt
 $baselineDependencies = & $uv pip list --format json | ConvertFrom-Json
 $protectedDependencies = $baselineDependencies | ForEach-Object { $_.name }
@@ -88,14 +89,15 @@ if (-not $?) {
     exit 1
 }
 .venv\Scripts\activate
-& $uv pip install --pre torch torchvision torchaudio --index-url $pypiUrl
+Write-Output "Installing torch: $uv pip install --pre "torch" "torchvision" "torchaudio" --index-url $pypiUrl"
+& $uv pip install --pre "torch" "torchvision" "torchaudio" --index-url $pypiUrl
 & $uv pip install -r requirements.txt
 
 if ($installSageAttention) {
     # Install Triton
     Write-Output "::: Installing Triton :::"
-    $maxTorchVersion = "2.10"
     $torchVersion = & $uv run python -c "import torch; print(torch.__version__.split(chr(43))[0].rsplit(chr(46),1)[0])"
+    $maxTorchVersion = "2.14"
     if ([version]$torchVersion -gt [version]$maxTorchVersion) {
         Write-Output "Detected torch version $torchVersion is greater than max supported version $maxTorchVersion. Using $maxTorchVersion for Triton installation."
         $torchVersion = $maxTorchVersion
@@ -107,10 +109,16 @@ if ($installSageAttention) {
     Write-Output "Uninstalling any existing triton-windows installation"
     & $uv pip uninstall triton-windows -y *> $null
     $tritonConstraint = switch ($torchVersion) {
+        # TODO: Turn this into Ayon settings
         "2.7" { "triton-windows<3.4" }
         "2.8" { "triton-windows<3.5" }
         "2.9" { "triton-windows<3.6" }
         "2.10" { "triton-windows<3.7" }
+        "2.11" { "triton-windows<3.7" }
+        "2.12" { "triton-windows<3.8" }
+        "2.13" { "triton-windows<3.8" }
+        "2.14" { "triton-windows<3.9" }
+        #"2.15" { "triton-windows<3.9" }
         default { $null }
     }
 
@@ -137,11 +145,18 @@ if ($installSageAttention) {
         # Install SageAttention 2.2.0 and SageAttention 3
         Write-Output "::: Installing SageAttention 2.2.0 :::"
 
-        $sage2Wheel = switch ("$torchVersion|$cudaVersion") {
+        $maxSageAttentionTorchVersion = "2.10"
+        $usedSageAttentionTorchVersion = $torchVersion
+        if ([version]$torchVersion -gt [version]$maxSageAttentionTorchVersion) {
+            Write-Output "Using base torch version $maxSageAttentionTorchVersion for SageAttention 2.2.0 instead of $torchVersion"
+            $usedSageAttentionTorchVersion = $maxSageAttentionTorchVersion
+        }
+        $sage2Wheel = switch ("$usedSageAttentionTorchVersion|$cudaVersion") {
+            # TODO: Turn this into Ayon settings
             "2.7|12.8" { "v2.2.0-windows.post3/sageattention-2.2.0+cu128torch2.7.1.post3-cp39-abi3-win_amd64.whl" }
             "2.8|12.8" { "v2.2.0-windows.post3/sageattention-2.2.0+cu128torch2.8.0.post3-cp39-abi3-win_amd64.whl" }
             "2.9|13.0" { "v2.2.0-windows.post5/sageattention-2.2.0+cu130torch2.9.1.post5-cp310-abi3-win_amd64.whl" }
-            "2.10|13.0" { "v2.2.0-windows.post5/sageattention-2.2.0+cu130torch2.10.0andhigher.post5-cp310-abi3-win_amd64.whl" }
+            "2.10|13.0" { "v2.2.0-windows.post6/sageattention-2.2.0+cu130torch2.10.0andhigher.post6-cp310-abi3-win_amd64.whl" }
             default { $null }
         }
 
@@ -164,11 +179,19 @@ if ($installSageAttention) {
 
         Write-Output "::: Installing SageAttention 3 :::"
 
-        $sage3Wheel = switch ("$torchVersion|$cudaVersion") {
+        $maxSageAttention3TorchVersion = "2.11"
+        $usedSageAttention3TorchVersion = $torchVersion
+        if ([version]$torchVersion -gt [version]$maxSageAttention3TorchVersion) {
+            Write-Output "Unsupported torch version for SageAttention 3: $torchVersion"
+            $usedSageAttention3TorchVersion = $null
+        }
+        $sage3Wheel = switch ("$usedSageAttention3TorchVersion|$cudaVersion") {
+            # TODO: Turn this into Ayon settings
             "2.7|12.8" { "https://github.com/mengqin/SageAttention/releases/download/20251229/sageattn3-1.0.0+cu128torch271-cp312-cp312-win_amd64.whl" }
             "2.8|12.8" { "https://github.com/mengqin/SageAttention/releases/download/20251229/sageattn3-1.0.0+cu128torch280-cp312-cp312-win_amd64.whl" }
             "2.9|13.0" { "https://github.com/mengqin/SageAttention/releases/download/20251229/sageattn3-1.0.0+cu130torch291-cp312-cp312-win_amd64.whl" }
             "2.10|13.0" { "https://huggingface.co/ussoewwin/Sage-Attention-for-Windows/resolve/main/sageattn3-1.0.0+cu130torch2.10.0-cp312-cp312-win_amd64.whl" }
+            "2.11|13.0" { "https://github.com/Comfy-Org/wheels/releases/download/sageattn3-latest/sageattn3-1.0.0+cu130torch2.11-cp312-cp312-win_amd64.whl" }
             default { $null }
         }
 
