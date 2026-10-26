@@ -32,6 +32,7 @@ You can also set a specific path to `uv` and `git` if it's not in `$PATH`.
 
 #### Repository Settings
 Configure where to pull ComfyUI sources, its target directory and additional plugins.
+You can now define multiple plugin profiles in the AYON settings. Each profile can have its own name and plugin list, and the app prompts you to choose one in a startup dialog before setup runs. The legacy `plugins` field still works as a default/fallback entry for older setups.
 You can specify extra dependencies to be installed as some custom nodes don't maintain a `requirements.txt`. All configured plugin dependencies will be collected and installed in a single `uv pip install`.
 
 #### Caching Settings

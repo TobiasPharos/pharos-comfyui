@@ -222,30 +222,30 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
         # Known mappings; add new ones here as they become available
         # TODO: Turn this into Ayon settings
         pypi_url_map = {
-            # "11.8": {
-            #     "stable": "https://download.pytorch.org/whl/cu118",
-            #     "nightly": None,
-            # },
-            # "12.6": {
-            #     "stable": "https://download.pytorch.org/whl/cu126",
-            #     "nightly": "https://download.pytorch.org/whl/nightly/cu126",
-            # },
+            "11.8": {
+                "stable": "https://download.pytorch.org/whl/cu118",
+                "nightly": None,
+            },
+            "12.6": {
+                "stable": "https://download.pytorch.org/whl/cu126",
+                "nightly": "https://download.pytorch.org/whl/nightly/cu126",
+            },
             "12.8": {
                 "stable": "https://download.pytorch.org/whl/cu128",
                 "nightly": "https://download.pytorch.org/whl/nightly/cu128",
             },
-            # "12.9": {
-            #     "stable": "https://download.pytorch.org/whl/cu129",
-            #     "nightly": "https://download.pytorch.org/whl/nightly/cu129",
-            # },
+            "12.9": {
+                "stable": "https://download.pytorch.org/whl/cu129",
+                "nightly": "https://download.pytorch.org/whl/nightly/cu129",
+            },
             "13.0": {
                 "stable": "https://download.pytorch.org/whl/cu130",
                 "nightly": "https://download.pytorch.org/whl/nightly/cu130",
             },
-            # "13.2": {
-            #     "stable": "https://download.pytorch.org/whl/cu132",
-            #     "nightly": "https://download.pytorch.org/whl/nightly/cu132",
-            # },
+            "13.2": {
+                "stable": "https://download.pytorch.org/whl/cu132",
+                "nightly": "https://download.pytorch.org/whl/nightly/cu132",
+            },
         }
 
         # choose channel
@@ -297,7 +297,7 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
             log.warning(f"Git executable not found at {git_path}")
 
         import git
-        
+
         def git_clone(url: str, dest: Path, tag: str = "") -> git.Repo:
             if not dest.exists():
                 log.info(f"Cloning {url} to {dest}")
@@ -366,9 +366,6 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
         if self.used_cuda_version:
             launch_args.append("-cudaVersion")
             launch_args.append(self.used_cuda_version)
-        if self.install_sageattention:
-            launch_args.append("-installSageAttention")
-            launch_args.append("$true")
 
         _cmd.extend(launch_args)
         cmd = " ".join([str(arg) for arg in _cmd])
@@ -401,3 +398,7 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
             raise RuntimeError(
                 f"ComfyUI launcher exited with non-zero return code: {result.returncode}"
             )
+
+        if self.install_sageattention:
+            log.info("SageAttention installation requested.")
+            subprocess.run()
