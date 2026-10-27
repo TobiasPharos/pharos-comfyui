@@ -1,13 +1,20 @@
-@echo off&&cd /D "%~dp0"
+@echo off
+:: Modification from original script. Do not switch to script's directory.
 setlocal enabledelayedexpansion
 set "node_name=SageAttention-Multi"
-Title '%node_name%' for 'ComfyUI Easy Install' by ivo
-:: Pixaroma Community Edition ::
+Title '%node_name%' based on 'ComfyUI Easy Install' by ivo
+:: PHAROS Edition ::
+:: This script is based on https://github.com/Tavris1/ComfyUI-Easy-Install
+:: Helper-CEI.zip/ComfyUI-Easy-Install/Add-Ons/SageAttention-Multi (v2.2.0 and v3).bat
+:: Follow the repo's releases to keep this script up to date
 
-set "DIR_LVL=..\"
+set "DIR_LVL=.\"
+for %%I in ("%DIR_LVL%") do set "ABS_DIR_LVL=%%~fI"
+echo Execution Root: %ABS_DIR_LVL%
+
 call :SET_COLORS
-call :CHECK_FOLDER "ComfyUI-Easy-Install\Add-ons"
-call :CHECK_INUSE "Start ComfyUI.bat"
+call :CHECK_FOLDER "%~dp0"
+call :CHECK_EXISTS "main.py"
 call :GET_VERSIONS "3.12" "2.7 2.8 2.9 2.10 2.11 2.12 2.13 2.14" "12.8 13.0"
 
 set "PIP_NC=--no-cache-dir"&if exist "%DIR_LVL%Add-Ons\Tools\Helper-CEI\keep_cache.flag" set "PIP_NC="
@@ -17,7 +24,7 @@ echo %green%:::::::::::::: Installing %yellow%SageAttention v2.2.0%green% and %y
 echo.
 
 :: Erasing ~* folders ::
-if exist "%DIR_LVL%python_embeded\Lib\site-packages\~*" (powershell -NoProfile -ExecutionPolicy Bypass -command "Get-ChildItem '%DIR_LVL%python_embeded\Lib\site-packages\' -Directory | Where-Object {$_.Name -like '~*'} | Remove-Item -Recurse -Force")
+if exist "%DIR_LVL%.venv\Lib\site-packages\~*" (powershell -NoProfile -ExecutionPolicy Bypass -command "Get-ChildItem '%DIR_LVL%.venv\Lib\site-packages\' -Directory | Where-Object {$_.Name -like '~*'} | Remove-Item -Recurse -Force")
 
 :: Installing Triton ::
 echo %green%:::::::::::::: Installing%yellow% Triton%reset%
@@ -73,74 +80,6 @@ echo %warning%Warning: PyTorch 2.12 and 2.13 do not support SageAttention 3.%res
 
 :ResumeScript
 
-:: Creating 'Start ComfyUI SageAttention.bat' file ::
-set "BATCH-NAME=%DIR_LVL%Start ComfyUI SageAttention.bat"
-if not exist "%BATCH-NAME%" (
-	echo.
-	echo %green%:::::::::::::: Creating%yellow% Start ComfyUI FlashAttention.bat%reset%
-
-    echo @Echo off^&^&cd /D "%%~dp0">"%BATCH-NAME%"
-	echo Title ComfyUI-Easy-Install>>"%BATCH-NAME%"
-	echo.>>"%BATCH-NAME%"
-	echo set CUDA_PATH=>>"%BATCH-NAME%"
-	echo set CUDA_HOME=>>"%BATCH-NAME%"
-	echo set CUDA_BIN_PATH=>>"%BATCH-NAME%"
-	echo set CUDNN_PATH=>>"%BATCH-NAME%"
-	echo set CUDNN_HOME=>>"%BATCH-NAME%"
-	echo set PYTHONPATH=>>"%BATCH-NAME%"
-	echo set PYTHONHOME=>>"%BATCH-NAME%"
-	echo set VIRTUAL_ENV=>>"%BATCH-NAME%"
-	echo set CONDA_PREFIX=>>"%BATCH-NAME%"
-	echo set CONDA_DEFAULT_ENV=>>"%BATCH-NAME%"
-	echo for /f "tokens=1* delims==" %%%%a in ^('set CUDA_PATH_V 2^^^>nul'^) do set "%%%%a=">>"%BATCH-NAME%"
-	echo.>>"%BATCH-NAME%"
-
-	echo set "path=%%windir%%\System32;%%windir%%\System32\WindowsPowerShell\v1.0;%%PATH%%">>"%BATCH-NAME%"
-	echo.>>"%BATCH-NAME%"
-
-	echo set PORT=8188>>"%BATCH-NAME%"
-	echo for /f %%%%A in ^('powershell -NoProfile -ExecutionPolicy Bypass -Command "([regex]::Match((Get-Content '%%~f0' -Raw), '--port\s+(\d+)')).Groups[1].Value"'^) do set PORT=%%%%A>>"%BATCH-NAME%"
-	echo for /f %%%%A in ^('powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-NetTCPConnection -LocalPort %%PORT%% -State Listen -ErrorAction SilentlyContinue) { 1 } else { 0 }"'^) do set INUSE=%%%%A>>"%BATCH-NAME%"
-	echo if "%%INUSE%%"=="1" ^(>>"%BATCH-NAME%"
-	echo     echo Hey [92m%%USERNAME%%[0m! ComfyUI is already running on port [92m%%PORT%%[0m.>>"%BATCH-NAME%"
-	echo     echo [93mPress any key to exit...[0m^&^&pause^>nul^&^&exit>>"%BATCH-NAME%"
-	echo ^)>>"%BATCH-NAME%"
-	echo.>>"%BATCH-NAME%"
-
-	echo .\python_embeded\python.exe -I -W ignore::FutureWarning ComfyUI\main.py --windows-standalone-build --use-sage-attention>>"%BATCH-NAME%"
-	echo pause>>"%BATCH-NAME%"
-)
-
-:: Creating 'ComfyUI-EZi SageAttention.bat' file ::
-set "BATCH-NAME=%DIR_LVL%ComfyUI-EZi SageAttention.bat"
-if not exist "%BATCH-NAME%" (
-	echo.
-	echo %green%:::::::::::::: Creating%yellow% ComfyUI-EZi SageAttention.bat%reset%
-
-    echo @Echo off^&^&cd /D "%%~dp0">"%BATCH-NAME%"
-	echo Title 'ComfyUI-EZi SageAttention' by ivo>>"%BATCH-NAME%"
-	echo.>>"%BATCH-NAME%"
-	
-	echo .\python_embeded\python.exe .\Add-Ons\Tools\Helper-CEI\ComfyUI-EZi.py "Start ComfyUI SageAttention.bat">>"%BATCH-NAME%"
-)
-
-:: Get real Desktop path ::
-for /f "delims=" %%D in ('powershell -NoProfile -ExecutionPolicy Bypass -command "[Environment]::GetFolderPath('Desktop')"') do set "DESKTOP=%%D"
-
-REM :: Create a shortcut on the desktop ::
-REM cd %DIR_LVL%
-REM if exist ".\Add-Ons\Tools\Helper-CEI\ComfyUI-Sage.ico" if exist ".\Start ComfyUI SageAttention.bat" (
-	REM echo %green%:::::::::::::: Creating desktop shortcut%reset%
-	REM powershell -NoProfile -ExecutionPolicy Bypass -command "$s=(New-Object -ComObject WScript.Shell).CreateShortcut('%DESKTOP%\ComfyUI-SA.lnk'); $s.TargetPath='%cd%\Start ComfyUI SageAttention.bat'; $s.WorkingDirectory='%cd%\'; $s.IconLocation='%cd%\Add-Ons\Tools\Helper-CEI\ComfyUI-Sage.ico'; $s.Save();"
-REM )
-
-REM :: Create a EZi shortcut on the desktop ::
-REM cd %DIR_LVL%
-REM if exist ".\Add-Ons\Tools\Helper-CEI\ComfyUI-EZi-Desktop.ico" if exist ".\ComfyUI-EZi SageAttention.bat" (
-	REM echo %green%:::::::::::::: Creating EZi SageAttention Desktop shortcut%reset%
-	REM powershell -NoProfile -ExecutionPolicy Bypass -command "$s=(New-Object -ComObject WScript.Shell).CreateShortcut('%DESKTOP%\ComfyUI-EZi SA.lnk'); $s.TargetPath='%cd%\ComfyUI-EZi SageAttention.bat'; $s.WorkingDirectory='%cd%\'; $s.IconLocation='%cd%\Add-Ons\Tools\Helper-CEI\ComfyUI-EZi-Desktop.ico'; $s.Save();"
-REM )
-
 :: Final Messages ::
 echo.
 echo %green%::::::::::::::%yellow% %node_name% %green%Installation Complete%reset%
@@ -167,19 +106,13 @@ set   white=[97m
 set   reset=[0m
 GOTO :EOF
 
-:CHECK_INUSE
-set "StartComfyUI=%DIR_LVL%%~1"
-set "path=%windir%\System32;%windir%\System32\WindowsPowerShell\v1.0;%localappdata%\Microsoft\WindowsApps;%PATH%"
-if exist %StartComfyUI% (
-	set PORT=8188
-	for /f %%A in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "([regex]::Match((Get-Content '%StartComfyUI%' -Raw), '--port\s+(\d+)')).Groups[1].Value"') do set PORT=%%A
-	for /f %%A in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-NetTCPConnection -LocalPort %PORT% -State Listen -ErrorAction SilentlyContinue) { 1 } else { 0 }"') do set INUSE=%%A
-	if "%INUSE%"=="1" (
-		echo.
-		echo    %white%ComfyUI%reset% is already running on port %green%%PORT%%reset%. %white%Please close it first.%reset%
-		echo.
-		echo    %gray%Press any key to exit...%reset%&&pause>nul&&exit
-)
+:CHECK_EXISTS
+set "CheckFile=%DIR_LVL%%~1"
+if not exist %CheckFile% (
+    echo.
+    echo    %white%Required file %red%%CheckFile%%white% not found.%reset%
+    echo.
+    echo    %gray%Press any key to exit...%reset%&&pause>nul&&exit
 )
 GOTO :EOF
 
@@ -187,11 +120,12 @@ GOTO :EOF
 set "PYTHON_EXE="
 set "PREF_FOLDER=%~1"
 
-if exist "%DIR_LVL%python_embeded\python.exe" (set "PYTHON_EXE=%DIR_LVL%python_embeded\python.exe")
+if exist "%DIR_LVL%.venv\Scripts\python.exe" (set "PYTHON_EXE=%DIR_LVL%.venv\Scripts\python.exe")
 
 if "%PYTHON_EXE%"=="" (
 	echo.
     echo    %green%Please run this file from the %yellow%%~1%green% folder.%reset%
+    echo    %green%Currently running from: %red%%ABS_DIR_LVL%%reset%
 	echo.
     echo    %gray%Press any key to exit...%reset%&Pause>nul
     exit

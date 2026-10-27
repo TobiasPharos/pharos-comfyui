@@ -242,10 +242,6 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
                 "stable": "https://download.pytorch.org/whl/cu130",
                 "nightly": "https://download.pytorch.org/whl/nightly/cu130",
             },
-            "13.2": {
-                "stable": "https://download.pytorch.org/whl/cu132",
-                "nightly": "https://download.pytorch.org/whl/nightly/cu132",
-            },
         }
 
         # choose channel
@@ -391,7 +387,6 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
         self.launch_context.launch_args = launch_args
         self.launch_context.kwargs = popen_kwargs
 
-        log.info(f"cmd: {' '.join(launch_args)} {popen_kwargs = }")
         result = subprocess.run(launch_args, **popen_kwargs)
         log.info(f"ComfyUI launcher finished with return code: {result.returncode}")
         if result.returncode != 0:
@@ -400,5 +395,18 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
             )
 
         if self.install_sageattention:
-            log.info("SageAttention installation requested.")
-            subprocess.run()
+            launch_script = ADDON_ROOT / "tools" / "SageAttention-Multi.bat"
+            _cmd = [launch_script.as_posix()]
+            launch_args = []
+            if self.cache_dir:
+                launch_args.append("1")
+            _cmd.extend(launch_args)
+            cmd = " ".join([str(arg) for arg in _cmd])
+            log.info("SageAttention installation.")
+
+            result = subprocess.run(cmd, **popen_kwargs)
+            log.info(f"SageAttention installation finished with return code: {result.returncode}")
+            if result.returncode != 0:
+                raise RuntimeError(
+                    f"SageAttention installation exited with non-zero return code: {result.returncode}"
+                )

@@ -6,8 +6,7 @@ param(
     [string]$pythonVersion = "", # Only Python 3.12 supported
     [string[]]$plugins = @(),
     [string[]]$extraDependencies = @(),
-    [string]$cudaVersion = "", # Limited to supported versions "12.8" and "13.0" by pre-launch hook for SageAttention compatibility
-    [bool]$installSageAttention = $false
+    [string]$cudaVersion = ""
 )
 
 # Function to get dependencies from a requirements.txt file
