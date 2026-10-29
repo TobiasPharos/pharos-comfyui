@@ -1,5 +1,5 @@
 @echo off
-:: Modification from original script. Do not switch to script's directory.
+:: Modification from original script: Do not switch to script's directory.
 setlocal enabledelayedexpansion
 set "node_name=SageAttention-Multi"
 Title '%node_name%' based on 'ComfyUI Easy Install' by ivo

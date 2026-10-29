@@ -6,7 +6,8 @@ param(
     [string]$pythonVersion = "", # Only Python 3.12 supported
     [string[]]$plugins = @(),
     [string[]]$extraDependencies = @(),
-    [string]$cudaVersion = ""
+    [string]$cudaVersion = "",
+    [string]$forcedTorchVersion = ""
 )
 
 # Function to get dependencies from a requirements.txt file
@@ -73,8 +74,8 @@ $tempVenv = ".venv-baseline"
 Write-Output "Creating temporary venv at $PWD\$tempVenv"
 & $uv venv $tempVenv --python $pythonVersion
 & "$tempVenv\Scripts\activate"
-Write-Output "Installing torch: $uv pip install --pre "torch" "torchvision" "torchaudio" --index-url $pypiUrl"
-& $uv pip install --pre "torch" "torchvision" "torchaudio" --index-url $pypiUrl
+Write-Output "Installing torch: $uv pip install --pre "torch$forcedTorchVersion" "torchvision" "torchaudio" --index-url $pypiUrl"
+& $uv pip install --pre "torch$forcedTorchVersion" "torchvision" "torchaudio" --index-url $pypiUrl
 & $uv pip install -r requirements.txt
 $baselineDependencies = & $uv pip list --format json | ConvertFrom-Json
 $protectedDependencies = $baselineDependencies | ForEach-Object { $_.name }
@@ -88,8 +89,8 @@ if (-not $?) {
     exit 1
 }
 .venv\Scripts\activate
-Write-Output "Installing torch: $uv pip install --pre "torch" "torchvision" "torchaudio" --index-url $pypiUrl"
-& $uv pip install --pre "torch" "torchvision" "torchaudio" --index-url $pypiUrl
+Write-Output "Installing torch: $uv pip install --pre "torch$forcedTorchVersion" "torchvision" "torchaudio" --index-url $pypiUrl"
+& $uv pip install --pre "torch$forcedTorchVersion" "torchvision" "torchaudio" --index-url $pypiUrl
 & $uv pip install -r requirements.txt
 
 # Get existing plugins in custom_nodes directory

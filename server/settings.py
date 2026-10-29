@@ -39,6 +39,16 @@ class VirtualEnvSettings(BaseSettingsModel):
         title="Use PyTorch Nightly",
         description="Use the nightly version of PyTorch.",
     )
+    force_torch_version: bool = SettingsField(
+        default=False,
+        title="Force PyTorch Version",
+        description="Force a specific version of PyTorch.",
+    )
+    torch_version: str = SettingsField(
+        default="",
+        title="PyTorch Version",
+        description="Specify the PyTorch version to use if 'Force PyTorch Version' is enabled.",
+    )
 
 
 class CustomNodeSettings(RepositorySettings):

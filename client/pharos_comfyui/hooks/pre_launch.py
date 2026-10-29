@@ -275,6 +275,15 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
 
         log.info(f"Using PyPI URL: {self.pypi_url}")
 
+        self.force_torch_version = bool(self.addon_settings["venv"]["force_torch_version"])
+        torch_version = self.addon_settings["venv"]["torch_version"]
+        if self.force_torch_version:
+            torch_tuple = _ver_tuple(torch_version)
+            if len(torch_tuple) < 3:
+                self.torch_version = f">={torch_tuple[0]}.{torch_tuple[1]},<{torch_tuple[0]}.{torch_tuple[1]+1}"
+            else:
+                self.torch_version = f"=={torch_version}"
+
         self.py_version: str = self.addon_settings["venv"]["python_version"]
         if not self.py_version.startswith("3.12"):
             log.warning(f"Unsupported Python version {self.py_version}. Only Python 3.12 is supported.")
@@ -362,6 +371,9 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
         if self.used_cuda_version:
             launch_args.append("-cudaVersion")
             launch_args.append(self.used_cuda_version)
+        if self.force_torch_version:
+            launch_args.append("-forcedTorchVersion")
+            launch_args.append(self.torch_version)
 
         _cmd.extend(launch_args)
         cmd = " ".join([str(arg) for arg in _cmd])
