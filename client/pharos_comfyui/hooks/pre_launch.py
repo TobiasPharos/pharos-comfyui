@@ -1,11 +1,11 @@
 import os
-
 import sys
 import ayon_api
 import subprocess
 import traceback
 import json
 import logging
+from copy import deepcopy
 from pathlib import Path
 from qtpy import QtWidgets, QtCore
 
@@ -20,6 +20,10 @@ from ayon_core.lib.local_settings import get_ayon_user_entity
 
 
 from pharos_comfyui import ADDON_ROOT, ADDON_NAME, ADDON_VERSION
+from pharos_comfyui.profile import (
+    resolve_profile_directory,
+    validate_existing_profile_directory,
+)
 
 LOG_LEVEL = logging.INFO
 logging.basicConfig(force=True, stream=sys.stdout, level=LOG_LEVEL)
@@ -80,6 +84,53 @@ def ask_update_comfyui(app) -> bool:
     return result == QtWidgets.QMessageBox.Yes
 
 
+class ProfileSelectionDialog(QtWidgets.QDialog):
+    def __init__(self, profiles, parent=None):
+        super().__init__(parent)
+        self.profiles = profiles
+        self.setWindowTitle("Select ComfyUI Profile")
+        self.setModal(True)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        profile_layout = QtWidgets.QHBoxLayout()
+        self.profile_combo = QtWidgets.QComboBox(self)
+        for profile in profiles:
+            self.profile_combo.addItem(profile["name"])
+        profile_layout.addWidget(self.profile_combo)
+
+        self.info_button = QtWidgets.QToolButton(self)
+        self.info_button.setIcon(
+            self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxInformation)
+        )
+        self.info_button.setToolTip("Show profile description")
+        self.info_button.clicked.connect(self.show_description)
+        profile_layout.addWidget(self.info_button)
+        layout.addLayout(profile_layout)
+
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+            parent=self,
+        )
+        buttons.button(QtWidgets.QDialogButtonBox.Ok).setText("Launch")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    @property
+    def selected_profile(self):
+        return self.profiles[self.profile_combo.currentIndex()]
+
+    def show_description(self):
+        description = self.selected_profile.get("description", "").strip()
+        if not description:
+            description = "No description is configured for this profile."
+        QtWidgets.QMessageBox.information(
+            self,
+            self.selected_profile["name"],
+            description,
+        )
+
+
 def run_with_spinner(func, app, msg=""):
 
     spinner = SpinnerDialog(msg)
@@ -128,10 +179,6 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
         app = QtWidgets.QApplication.instance()
         if app is None:
             app = QtWidgets.QApplication(sys.argv)
-        if not ask_update_comfyui(app):
-            log.info("User chose not to update ComfyUI. Skipping pre-launch setup.")
-            return
-
         anatomy = Anatomy(project_name=self.data["project_name"])
         self.tmpl_data = get_template_data(self.data["project_entity"])
         self.tmpl_data.update({"root": anatomy.roots})
@@ -141,6 +188,17 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
             ADDON_NAME, ADDON_VERSION, self.tmpl_data["project"]["name"]
         )
 
+        profiles = self.addon_settings.get("profiles", [])
+        if not profiles:
+            raise RuntimeError("No ComfyUI profiles are configured in the addon settings.")
+        profile_dialog = ProfileSelectionDialog(profiles)
+        if profile_dialog.exec_() != QtWidgets.QDialog.Accepted:
+            raise RuntimeError("No ComfyUI profile was selected. Launch cancelled.")
+        self.profile_settings = deepcopy(profile_dialog.selected_profile)
+
+        if not ask_update_comfyui(app):
+            log.info("User chose not to update ComfyUI. Skipping pre-launch setup.")
+            return
 
         if not run_with_spinner(self.pre_launch_setup, app):
             raise RuntimeError("Pre-launch setup was aborted by user.")
@@ -153,14 +211,22 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
     def pre_process(self, progress_callback=EMPTY_PROGRESS_CALLBACK):
         progress_callback("Pre-processing...")
 
-        comfy_root_tmpl = StringTemplate(
-            self.addon_settings["repositories"]["base_template"]
+        profile_settings = self.profile_settings
+        repository_settings = profile_settings["repositories"]
+        root_template = StringTemplate(self.addon_settings["root_template"])
+        root_path = Path(root_template.format_strict(self.tmpl_data))
+        self.comfy_root = resolve_profile_directory(
+            root_path,
+            profile_settings["name"],
         )
-        self.comfy_root = Path(comfy_root_tmpl.format_strict(self.tmpl_data))
+        validate_existing_profile_directory(
+            self.comfy_root,
+            repository_settings["base_url"],
+        )
         log.debug(f"{self.comfy_root = }")
 
         # Addon plugins
-        self.plugins = self.addon_settings["repositories"]["plugins"]
+        self.plugins = deepcopy(repository_settings["plugins"])
 
         # User plugins
         user = get_ayon_user_entity()
@@ -191,8 +257,8 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
                 self.extra_dependencies.update(plugin["extra_dependencies"])
 
         self.cache_dir = None
-        if self.addon_settings["caching"].get("enabled"):
-            cache_tmpl = self.addon_settings["caching"]["cache_dir_template"]
+        if profile_settings["caching"].get("enabled"):
+            cache_tmpl = profile_settings["caching"]["cache_dir_template"]
             self.cache_dir = StringTemplate(cache_tmpl).format_strict(self.tmpl_data)
 
         # get installed CUDA version and build correct pypi index url
@@ -245,7 +311,8 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
         }
 
         # choose channel
-        use_nightly = bool(self.addon_settings["venv"]["use_torch_nightly"])
+        venv_settings = profile_settings["venv"]
+        use_nightly = bool(venv_settings["use_torch_nightly"])
         channel = "nightly" if use_nightly else "stable"
 
         def _ver_tuple(s: str):
@@ -278,8 +345,8 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
 
         log.info(f"Using PyPI URL: {self.pypi_url}")
 
-        self.force_torch_version = bool(self.addon_settings["venv"]["force_torch_version"])
-        torch_version = self.addon_settings["venv"]["torch_version"]
+        self.force_torch_version = bool(venv_settings["force_torch_version"])
+        torch_version = venv_settings["torch_version"]
         if self.force_torch_version:
             torch_tuple = _ver_tuple(torch_version)
             if len(torch_tuple) == 2:
@@ -287,14 +354,14 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
             else:
                 self.torch_version = f"\"=={torch_version}\""
 
-        self.py_version: str = self.addon_settings["venv"]["python_version"]
+        self.py_version: str = venv_settings["python_version"]
         if not self.py_version.startswith("3.12"):
             log.warning(f"Unsupported Python version {self.py_version}. Only Python 3.12 is supported.")
-        self.uv_path: str = self.addon_settings["venv"]["uv_path"]
-        self.install_sageattention: bool = self.addon_settings["repositories"]["install_sageattention"]
+        self.uv_path: str = venv_settings["uv_path"]
+        self.install_sageattention: bool = repository_settings["install_sageattention"]
 
     def clone_repositories(self, progress_callback=EMPTY_PROGRESS_CALLBACK):
-        git_path = self.addon_settings["venv"]["git_path"]
+        git_path = self.profile_settings["venv"]["git_path"]
         if Path(git_path).exists():
             if os.getenv("GIT_PYTHON_GIT_EXECUTABLE"):
                 log.warning(
@@ -306,8 +373,9 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
 
         import git
 
-        def git_clone(url: str, dest: Path, tag: str = "") -> git.Repo:
+        def git_clone(url: str, dest: Path, ref: str = "") -> git.Repo:
             if not dest.exists():
+                dest.parent.mkdir(parents=True, exist_ok=True)
                 log.info(f"Cloning {url} to {dest}")
                 repo = git.Repo.clone_from(url, dest)
             else:
@@ -318,19 +386,28 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
                 log.info(f"Stashing uncommitted changes in {repo}")
                 repo.git.stash("save", "--include-untracked")
 
-            if tag:
-                log.info(f"Checking out tag {tag} for {repo}")
-                repo.git.checkout(tag)
+            if ref:
+                log.info(f"Checking out ref {ref} for {repo}")
+                repo.git.checkout(ref)
             else:
-                repo.remotes.origin.pull()
+                repo.git.remote("set-head", "origin", "--auto")
+                default_ref = repo.git.symbolic_ref("refs/remotes/origin/HEAD")
+                prefix = "refs/remotes/origin/"
+                if not default_ref.startswith(prefix):
+                    raise RuntimeError(f"Invalid default branch reference for {url}.")
+                default_branch = default_ref.removeprefix(prefix)
+                if default_branch in repo.heads:
+                    repo.heads[default_branch].checkout()
+                else:
+                    repo.git.checkout("-b", default_branch, default_ref)
+                repo.remotes.origin.pull(default_branch)
             return repo
 
-        app = self.launch_context.data["app"]
-        base_url = self.addon_settings["repositories"]["base_url"]
+        repository_settings = self.profile_settings["repositories"]
         git_clone(
-            url=base_url,
+            url=repository_settings["base_url"],
             dest=self.comfy_root,
-            tag=app.name,
+            ref=self.profile_settings["comfyui_version"],
         )
 
         # clone custom nodes
@@ -341,7 +418,7 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
             git_clone(
                 url=plugin["url"],
                 dest=plugin_root,
-                tag=plugin["tag"],
+                ref=plugin["tag"],
             )
 
     def run_server(self):
