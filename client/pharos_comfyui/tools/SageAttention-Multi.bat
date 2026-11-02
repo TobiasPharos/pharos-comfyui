@@ -84,10 +84,6 @@ echo %warning%Warning: PyTorch 2.12 and 2.13 do not support SageAttention 3.%res
 echo.
 echo %green%::::::::::::::%yellow% %node_name% %green%Installation Complete%reset%
 echo.
-if "%~1"=="" (
-    echo %green%:::::::::::::: %yellow%Press any key to exit%reset%&Pause>nul
-    exit
-)
 
 exit /b
 
