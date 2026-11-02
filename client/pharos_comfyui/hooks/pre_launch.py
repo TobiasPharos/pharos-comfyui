@@ -249,7 +249,10 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
         channel = "nightly" if use_nightly else "stable"
 
         def _ver_tuple(s: str):
-            return tuple(int(x) for x in s.split("."))
+            try:
+                return tuple(int(x) for x in s.split("."))
+            except ValueError as err:
+                raise ValueError(f"Invalid version string: {s}") from err
 
         # exact hit if available (and URL exists)
         if cuda_version in pypi_url_map and pypi_url_map[cuda_version][channel]:
@@ -279,10 +282,10 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
         torch_version = self.addon_settings["venv"]["torch_version"]
         if self.force_torch_version:
             torch_tuple = _ver_tuple(torch_version)
-            if len(torch_tuple) < 3:
-                self.torch_version = f">={torch_tuple[0]}.{torch_tuple[1]},<{torch_tuple[0]}.{torch_tuple[1]+1}"
+            if len(torch_tuple) == 2:
+                self.torch_version = f"\">={torch_tuple[0]}.{torch_tuple[1]},<{torch_tuple[0]}.{torch_tuple[1]+1}\""
             else:
-                self.torch_version = f"=={torch_version}"
+                self.torch_version = f"\"=={torch_version}\""
 
         self.py_version: str = self.addon_settings["venv"]["python_version"]
         if not self.py_version.startswith("3.12"):
