@@ -84,53 +84,6 @@ def ask_update_comfyui(app) -> bool:
     return result == QtWidgets.QMessageBox.Yes
 
 
-class ProfileSelectionDialog(QtWidgets.QDialog):
-    def __init__(self, profiles, parent=None):
-        super().__init__(parent)
-        self.profiles = profiles
-        self.setWindowTitle("Select ComfyUI Profile")
-        self.setModal(True)
-
-        layout = QtWidgets.QVBoxLayout(self)
-        profile_layout = QtWidgets.QHBoxLayout()
-        self.profile_combo = QtWidgets.QComboBox(self)
-        for profile in profiles:
-            self.profile_combo.addItem(profile["name"])
-        profile_layout.addWidget(self.profile_combo)
-
-        self.info_button = QtWidgets.QToolButton(self)
-        self.info_button.setIcon(
-            self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxInformation)
-        )
-        self.info_button.setToolTip("Show profile description")
-        self.info_button.clicked.connect(self.show_description)
-        profile_layout.addWidget(self.info_button)
-        layout.addLayout(profile_layout)
-
-        buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
-            parent=self,
-        )
-        buttons.button(QtWidgets.QDialogButtonBox.Ok).setText("Launch")
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
-
-    @property
-    def selected_profile(self):
-        return self.profiles[self.profile_combo.currentIndex()]
-
-    def show_description(self):
-        description = self.selected_profile.get("description", "").strip()
-        if not description:
-            description = "No description is configured for this profile."
-        QtWidgets.QMessageBox.information(
-            self,
-            self.selected_profile["name"],
-            description,
-        )
-
-
 def run_with_spinner(func, app, msg=""):
 
     spinner = SpinnerDialog(msg)
@@ -191,10 +144,22 @@ class PharosComfyUIPreLaunchHook(PreLaunchHook):
         profiles = self.addon_settings.get("profiles", [])
         if not profiles:
             raise RuntimeError("No ComfyUI profiles are configured in the addon settings.")
-        profile_dialog = ProfileSelectionDialog(profiles)
-        if profile_dialog.exec_() != QtWidgets.QDialog.Accepted:
-            raise RuntimeError("No ComfyUI profile was selected. Launch cancelled.")
-        self.profile_settings = deepcopy(profile_dialog.selected_profile)
+        application_label = self.application.label
+        selected_profile = next(
+            (profile for profile in profiles if profile["name"] == application_label),
+            None,
+        )
+        if selected_profile is None:
+            available_profiles = ", ".join(profile["name"] for profile in profiles)
+            message = (
+                f"No ComfyUI profile matches application label '{application_label}'.\n\n"
+                f"Available profiles: {available_profiles}\n\n"
+                "Set the variant Label under Additional Applications > comfyui "
+                "to exactly match a profile Name in the addon settings."
+            )
+            QtWidgets.QMessageBox.critical(None, "ComfyUI Profile Not Found", message)
+            raise RuntimeError(message)
+        self.profile_settings = deepcopy(selected_profile)
 
         if not ask_update_comfyui(app):
             log.info("User chose not to update ComfyUI. Skipping pre-launch setup.")

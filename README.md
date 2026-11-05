@@ -18,19 +18,18 @@ Any folder found in the `custom_nodes` directory that is not in the configured p
 ## Setup
 This addon requires an "Additional Application" in AYON's application settings to be created.
 Its `name` and `host_name` must be `comfyui`.
-The application variant no longer selects the ComfyUI version. Set the windows executable path to `powershell.exe`.
+Set the windows executable path to `powershell.exe`.
 This is to launch beforementioned separate terminal session. I know, it's a bit hacky.
+In Ayon Application settings, create an application variant under **Additional Applications > comfyui** and set its **Label** to exactly match a profile's **Name** in this addon's settings (for example, `Default`). The variant's internal **Name** can differ from its label.
 
 ## Profiles
 Configure a global **Root Template** and one or more profiles in the addon settings. The root template is the parent directory for all profile installations. Each profile has a name, description, ComfyUI Git ref, and its own virtual environment, repository/plugin, and caching settings.
 
-The profile picker appears on every startup. Select a profile and use its info button to view the description. Canceling the picker cancels launch. The existing update/setup prompt appears after profile selection; choosing not to update continues to skip setup.
+The profile is selected automatically by matching the launched variant's display label to a profile name, including case and whitespace. If the variant's Label is empty, AYON uses its internal Name as the effective display label.
 
-The ComfyUI Version field accepts a branch, tag, or commit. Leave it empty to use the ComfyUI repository's default branch. The application variant is ignored for version selection.
+The ComfyUI Version field accepts a branch, tag, or commit. Leave it empty to use the ComfyUI repository's default branch.
 
-Profile names remain unchanged in the picker. Installation directory names use Pascal-Case, transliterate German umlauts (`ä` to `ae`, `ö` to `oe`, `ü` to `ue`, `ß` to `ss`), and remove punctuation and other special characters. For example, `Künstler Größe!` becomes `KuenstlerGroesse`. The server rejects profiles that resolve to the same installation directory. An existing ComfyUI checkout with the configured repository origin is reused; an unrelated directory at that path blocks setup.
-
-Existing flat addon settings are not migrated automatically. Recreate them in the new profile settings and enter any former application-variant version pin in the profile's ComfyUI Version field. Old checkout directories are left untouched.
+The installation directory names use Pascal-Case, transliterate German umlauts (`ä` to `ae`, `ö` to `oe`, `ü` to `ue`, `ß` to `ss`), and remove punctuation and other special characters. For example, `Künstler Größe!` becomes `KuenstlerGroesse`. The server rejects profiles that resolve to the same installation directory. An existing ComfyUI checkout with the configured repository origin is reused; a directory without ComfyUI checkout at that path blocks setup.
 
 You may also add a custom User Attribute called userComfyUiPlugins. It allows you to set up user-specific ComfyUi Environments. The attribute is a list of dictionaries. Each dict requires at least a key "url" with the github URL of the plugin. Optionally it may also contain the keys "tag" (checkout specific tag), "name" (defaults to the name of the repo if not set), "extra_dependencies" (to install dependencies, that are not in the requirements.txt of the repo) - basically the structure follows the same structure as the Plugins settings in the main addon settings.
 ```python
